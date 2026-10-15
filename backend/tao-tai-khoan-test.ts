@@ -15,11 +15,12 @@ import {
 async function main() {
   const dataSource = new DataSource({
     type: 'mysql',
-    host: 'localhost',
-    port: 3306,
-    username: 'root',
-    password: '',
-    database: 'zalobox_hopthu',
+    // Đọc từ biến môi trường; không đặt thì mặc định chạy vào XAMPP như cũ
+    host: process.env.DB_HOST || 'localhost',
+    port: Number(process.env.DB_PORT) || 3306,
+    username: process.env.DB_USERNAME || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_DATABASE || 'zalobox_hopthu',
     entities: [
       ToChuc,
       NguoiDung,
@@ -34,6 +35,9 @@ async function main() {
   });
 
   await dataSource.initialize();
+  console.log(
+    `Đã kết nối DB: ${dataSource.options.database} (port ${(dataSource.options as { port?: number }).port})`,
+  );
 
   const toChucRepo = dataSource.getRepository(ToChuc);
   const nguoiDungRepo = dataSource.getRepository(NguoiDung);
@@ -41,6 +45,16 @@ async function main() {
   let toChuc = await toChucRepo.findOne({ where: { ten: 'SnailSoft Test' } });
   if (!toChuc) {
     toChuc = await toChucRepo.save({ ten: 'SnailSoft Test' });
+  }
+
+  // Tránh lỗi trùng email nếu chạy script nhiều lần
+  const daCo = await nguoiDungRepo.findOne({
+    where: { email: 'test@example.com' },
+  });
+  if (daCo) {
+    console.log('Tài khoản test@example.com đã tồn tại, bỏ qua.');
+    await dataSource.destroy();
+    return;
   }
 
   const matKhauMaHoa = await bcrypt.hash('123456', 10);
