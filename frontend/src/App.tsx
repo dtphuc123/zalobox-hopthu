@@ -9,6 +9,7 @@ import { DanhSachHoiThoai } from './pages/DanhSachHoiThoai';
 import { ChiTietHoiThoai } from './pages/ChiTietHoiThoai';
 import { MauTraLoiNhanhTrang } from './pages/MauTraLoiNhanh';
 import { BaoCaoHieuSuat } from './pages/BaoCaoHieuSuat';
+import { KetNoiZalo } from './pages/KetNoiZalo';
 
 export function App() {
   useEffect(() => {
@@ -50,6 +51,14 @@ export function App() {
               element={
                 <RouteRiengTu>
                   <BaoCaoHieuSuat />
+                </RouteRiengTu>
+              }
+            />
+            <Route
+              path="/ket-noi-zalo"
+              element={
+                <RouteRiengTu>
+                  <KetNoiZalo />
                 </RouteRiengTu>
               }
             />

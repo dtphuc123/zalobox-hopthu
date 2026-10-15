@@ -7,13 +7,26 @@ import {
 import { ZaloAdapter } from '../adapters/zalo.adapter';
 import { TinNhanSyncService } from './tin-nhan-sync.service';
 
+export type TrangThaiKetNoiZalo =
+  | 'hoat_dong'
+  | 'cho_quet_qr'
+  | 'dang_ket_noi'
+  | 'ngat_ket_noi'
+  | 'loi';
+
+export interface ThongTinKetNoiZalo {
+  trangThai: TrangThaiKetNoiZalo;
+  maQr: string | null; // ảnh QR dạng base64 (không có tiền tố data:)
+  idTaiKhoanZalo: string | null;
+}
+
 @Injectable()
 export class ZaloListenerService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ZaloListenerService.name);
   private readonly adapter = new ZaloAdapter();
 
-  // TODO: thay bằng id thật của TaiKhoanNenTang
-  private readonly taiKhoanNenTangId = 'fc8e709f-1d28-4425-b808-5b1a0978f60a';
+  // Lấy tự động sau khi đăng nhập Zalo (không ghi cứng nữa)
+  private taiKhoanNenTangId: string | null = null;
 
   private dangKetNoiLai = false;
   private soLanThuLai = 0;
@@ -33,16 +46,44 @@ export class ZaloListenerService implements OnModuleInit, OnModuleDestroy {
     if (this.watchdogTimer) clearInterval(this.watchdogTimer);
   }
 
+  /** Trạng thái kết nối hiện tại, dùng cho API GET /zalo/trang-thai */
+  layTrangThai(): ThongTinKetNoiZalo {
+    const trangThaiAdapter = this.adapter.getStatus();
+    const maQr = this.adapter.layMaQr();
+
+    let trangThai: TrangThaiKetNoiZalo;
+    if (trangThaiAdapter === 'active') trangThai = 'hoat_dong';
+    else if (maQr) trangThai = 'cho_quet_qr';
+    else if (this.dangKetNoiLai) trangThai = 'dang_ket_noi';
+    else if (trangThaiAdapter === 'error') trangThai = 'loi';
+    else trangThai = 'ngat_ket_noi';
+
+    return {
+      trangThai,
+      maQr: trangThai === 'cho_quet_qr' ? maQr : null,
+      idTaiKhoanZalo: this.adapter.layIdTaiKhoanZalo(),
+    };
+  }
+
   private async ketNoi(): Promise<void> {
     try {
       await this.adapter.connect((qrPath) => {
         this.logger.log(`Mã QR đã lưu tại: ${qrPath}`);
       });
 
+      // Lấy ID tài khoản Zalo vừa đăng nhập, tìm/tạo TaiKhoanNenTang tương ứng
+      const idTaiKhoanZalo = this.adapter.layIdTaiKhoanZalo();
+      if (!idTaiKhoanZalo) {
+        throw new Error('Không lấy được ID tài khoản Zalo sau khi đăng nhập');
+      }
+      const taiKhoanNenTangId =
+        await this.tinNhanSyncService.damBaoTaiKhoanZalo(idTaiKhoanZalo);
+      this.taiKhoanNenTangId = taiKhoanNenTangId;
+
       this.adapter.onMessageReceived(async (event) => {
         try {
           await this.tinNhanSyncService.xuLyTinNhanDen(
-            this.taiKhoanNenTangId,
+            taiKhoanNenTangId,
             event,
           );
         } catch (loi) {
@@ -51,9 +92,12 @@ export class ZaloListenerService implements OnModuleInit, OnModuleDestroy {
       });
 
       this.soLanThuLai = 0;
-      this.logger.log('ZaloListenerService đã sẵn sàng nhận tin nhắn.');
+      this.logger.log(
+        `ZaloListenerService đã sẵn sàng nhận tin nhắn (tài khoản nền tảng ${taiKhoanNenTangId}).`,
+      );
     } catch (loi) {
       this.logger.error('Không thể kết nối ZaloAdapter:', loi as Error);
+      await this.ghiTrangThaiTaiKhoan('loi');
       this.lenLichThuLaiKetNoi();
     }
   }
@@ -67,6 +111,7 @@ export class ZaloListenerService implements OnModuleInit, OnModuleDestroy {
     this.watchdogTimer = setInterval(() => {
       if (this.adapter.getStatus() !== 'active' && !this.dangKetNoiLai) {
         this.logger.warn('Phát hiện mất kết nối Zalo, đang thử kết nối lại...');
+        void this.ghiTrangThaiTaiKhoan('ngat_ket_noi');
         void this.ketNoiLai();
       }
     }, this.KHOANG_CACH_KIEM_TRA_MS);
@@ -86,6 +131,21 @@ export class ZaloListenerService implements OnModuleInit, OnModuleDestroy {
       await this.ketNoi();
     } finally {
       this.dangKetNoiLai = false;
+    }
+  }
+
+  /** Ghi trạng thái vào DB, bỏ qua nếu chưa biết tài khoản nào */
+  private async ghiTrangThaiTaiKhoan(
+    trangThai: 'hoat_dong' | 'ngat_ket_noi' | 'loi',
+  ): Promise<void> {
+    if (!this.taiKhoanNenTangId) return;
+    try {
+      await this.tinNhanSyncService.capNhatTrangThaiTaiKhoan(
+        this.taiKhoanNenTangId,
+        trangThai,
+      );
+    } catch (loi) {
+      this.logger.warn(`Không cập nhật được trạng thái tài khoản: ${loi}`);
     }
   }
 
