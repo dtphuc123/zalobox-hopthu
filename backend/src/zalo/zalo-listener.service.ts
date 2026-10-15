@@ -22,8 +22,10 @@ export class ZaloListenerService implements OnModuleInit, OnModuleDestroy {
 
   constructor(private readonly tinNhanSyncService: TinNhanSyncService) {}
 
-  async onModuleInit(): Promise<void> {
-    await this.ketNoi();
+  onModuleInit(): void {
+    // Không await: để NestJS mở cổng ngay, đăng nhập Zalo chạy nền.
+    // Nếu await ở đây, backend sẽ đứng chờ quét QR và không nhận request nào.
+    void this.ketNoiLai();
     this.batDauWatchdog();
   }
 
