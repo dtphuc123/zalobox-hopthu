@@ -1,114 +1,86 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# ZaloBox Hộp Thư — Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API NestJS + TypeORM + MySQL cho hệ thống quản lý hội thoại Zalo OA. Xác thực
+bằng JWT, kết nối Zalo qua thư viện `zca-js` (đăng nhập bằng quét mã QR, nghe
+tin nhắn khách đến, gửi tin nhắn trả lời).
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
-
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
+## Cài đặt
 
 ```bash
-$ npm install
+cp .env.example .env   # điền thông tin kết nối MySQL thật + JWT_SECRET
+npm install
+npm run start:dev      # http://localhost:3000, tự reload khi sửa code
 ```
 
-## Compile and run the project
+Backend cần một database MySQL đã tồn tại (tên khớp với `DB_DATABASE` trong
+`.env`) — TypeORM tự đồng bộ schema dựa trên entity khi khởi động (môi trường
+dev).
+
+## Biến môi trường
+
+Xem đầy đủ trong [`.env.example`](.env.example):
+
+| Biến | Ý nghĩa |
+|---|---|
+| `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DATABASE` | Kết nối MySQL |
+| `JWT_SECRET` | Khóa bí mật ký JWT khi đăng nhập |
+| `ZALO_SESSION_PATH` | File lưu phiên đăng nhập Zalo (giữ nguyên qua các lần restart) |
+| `PORT` | Cổng chạy server (mặc định 3000) |
+
+## Cấu trúc module
+
+```
+src/
+  auth/              đăng nhập (JWT), guard bảo vệ route, JwtStrategy
+  zalo/              kết nối Zalo (QR), nghe tin nhắn đến, đồng bộ vào DB
+  adapters/          ZaloAdapter — bọc thư viện zca-js sau 1 interface chung
+                      (IPlatformAdapter), dễ thay nền tảng khác về sau
+  hoi-thoai/         CRUD hội thoại: tìm kiếm, lịch sử tin nhắn, gán người
+                      phụ trách, đổi trạng thái, gắn/gỡ nhãn, ghi chú nội bộ
+  nhan/              quản lý nhãn (tag) hội thoại
+  mau-tra-loi-nhanh/ mẫu trả lời soạn sẵn
+  bao-cao/           báo cáo hiệu suất nhân viên (tính từ dữ liệu hội thoại
+                      + tin nhắn thật trong DB, không có số liệu giả lập)
+  nguoi-dung/        quản lý tài khoản nhân viên
+  entities/          entity TypeORM (NguoiDung, HoiThoai, TinNhan, KhachHang,
+                      Nhan, GhiChuNoiBo, ToChuc, TaiKhoanNenTang)
+```
+
+Mỗi module theo đúng 1 khuôn mẫu: `*.controller.ts` chỉ nhận request/trả kết
+quả, toàn bộ nghiệp vụ (kiểm tra quyền, truy vấn DB) nằm trong
+`*.service.ts`; validate input bằng DTO (`class-validator`), được bật toàn
+cục qua `ValidationPipe` trong `main.ts`.
+
+### Phân quyền
+
+Hai vai trò: `quan_tri` (admin) và `nhan_vien`. Quy tắc áp dụng nhất quán ở
+tầng service (không chỉ ở route):
+
+- Admin xem/thao tác được mọi hội thoại trong tổ chức mình, xem được báo cáo
+  hiệu suất, gán người phụ trách cho hội thoại.
+- Nhân viên chỉ xem/thao tác được hội thoại mình đang phụ trách.
+
+## Kiểm thử
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm test          # unit test (Jest), mock repository thủ công — không cần
+                   # kết nối DB thật
+npm run test:cov  # kèm báo cáo coverage
+npm run test:e2e  # end-to-end (cần DB thật, xem test/jest-e2e.json)
 ```
 
-## Run tests
+Test hiện có tập trung vào phần dễ sai nhất: logic phân quyền
+(`auth/auth.service.spec.ts`, `hoi-thoai/hoi-thoai.service.spec.ts`).
+
+## Script khác
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm run build   # build ra dist/ (nest build)
+npm run lint    # oxlint src/ test/
+npm run format  # prettier --write
 ```
 
-## Deployment
+## Công nghệ dùng
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Observability
-
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
-
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
-
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observer](https://observer.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+NestJS · TypeORM · MySQL · Passport + JWT · class-validator/class-transformer
+· bcrypt (mã hóa mật khẩu) · zca-js (kết nối Zalo) · Jest (test)

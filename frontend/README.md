@@ -1,8 +1,9 @@
 # ZaloBox Hộp Thư — Frontend
 
-Khung frontend React + TypeScript + Ant Design, nối với backend NestJS đã có
-(`/auth/dang-nhap`, `/hoi-thoai`, `/hoi-thoai/:id/tin-nhan`,
-`/hoi-thoai/:id/nguoi-phu-trach`).
+Frontend React + TypeScript + Ant Design cho hệ thống quản lý hội thoại Zalo
+OA, nối trực tiếp với backend NestJS qua REST API — toàn bộ dữ liệu hiển thị
+(hội thoại, tin nhắn, báo cáo...) lấy thật từ backend, không có dữ liệu giả
+lập trong code.
 
 ## Cài đặt
 
@@ -31,30 +32,21 @@ src/
     BoCucChinh.tsx     # layout chung (sidebar + header)
     RouteRiengTu.tsx   # bảo vệ route cần đăng nhập
   pages/
-    DangNhap.tsx            # màn đăng nhập
-    DanhSachHoiThoai.tsx     # danh sách hội thoại (bảng, trạng thái, nhãn)
-    ChiTietHoiThoai.tsx      # khung chat 1 hội thoại + gửi trả lời
+    DangNhap.tsx             # màn đăng nhập
+    DanhSachHoiThoai.tsx     # danh sách hội thoại (bảng, trạng thái, nhãn, tự làm mới)
+    ChiTietHoiThoai.tsx      # khung chat 1 hội thoại: gửi trả lời, đổi trạng thái,
+                              # gán người phụ trách, gắn/gỡ nhãn, ghi chú nội bộ
+    MauTraLoiNhanh.tsx       # quản lý mẫu trả lời soạn sẵn
+    BaoCaoHieuSuat.tsx       # báo cáo hiệu suất nhân viên (chỉ admin)
+    KetNoiZalo.tsx           # quét mã QR kết nối tài khoản Zalo OA
 ```
 
-## Điểm cần khớp lại với backend thật
+Mỗi trang gọi API theo cùng một khuôn mẫu: state `dangTai`/`loi`, gọi hàm
+trong `src/api/*.ts` bằng `async/await` trong `try/catch/finally`, báo lỗi
+qua `Alert` (lỗi chặn luồng chính) hoặc `message.error` (lỗi thao tác phụ,
+không chặn trang) — không có trang nào âm thầm nuốt lỗi.
 
-Các interface trong `src/api/types.ts` được suy ra từ `hoi-thoai.service.ts`
-và `hoi-thoai.controller.ts` đã xem qua (chưa xem entity gốc và
-`AuthModule`/`dto đăng nhập`). Khi ghép nối thật, kiểm tra lại:
+## Real-time
 
-1. **Response của `POST /auth/dang-nhap`** — hiện giả định trả về
-   `{ accessToken, nguoiDung: { id, hoTen, email, vaiTro, toChucId } }`.
-   Nếu backend trả tên field khác (vd `token` thay vì `accessToken`), sửa
-   trong `src/api/types.ts` và `src/api/auth.ts`.
-2. **Entity `KhachHang`** — đang dùng `tenHienThi`, `anhDaiDien`, `maNgoai`.
-   Khớp lại theo entity thật trong `entities/khach-hang.entity.ts`.
-3. **Entity `Nhan`** — đang dùng `ten`, `mauSac`.
-
-## Việc tiếp theo có thể làm
-
-- Trang gán người phụ trách (`PATCH /hoi-thoai/:id/nguoi-phu-trach`) — hàm
-  `ganNguoiPhuTrach` đã có sẵn trong `src/api/hoiThoai.ts`, chỉ cần thêm UI
-  (vd dropdown chọn nhân viên) trong `ChiTietHoiThoai.tsx`, hiện chỉ admin
-  mới gọi được theo logic backend.
-- Tự động làm mới danh sách/tin nhắn theo thời gian thực (polling hoặc
-  WebSocket) thay vì chỉ tải lại khi vào trang.
+Chưa có WebSocket — danh sách hội thoại và lịch sử tin nhắn tự làm mới bằng
+polling (`setInterval`, xem hằng số `CHU_KY_LAM_MOI_MS` trong từng trang).
