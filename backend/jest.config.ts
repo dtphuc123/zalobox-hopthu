@@ -15,19 +15,14 @@ const config: Config = {
   rootDir: '.',
   testRegex: '.*\\.spec\\.ts$',
   transform: {
-    // Một số gói trong node_modules (vd @nestjs/*) phát hành dưới dạng ES
-    // Module thuần (import/export), trong khi project này biên dịch/chạy ở
-    // chế độ CommonJS (không có "type": "module"). Ép ts-jest luôn biên
-    // dịch ra CommonJS (bất kể "module": "nodenext" ở tsconfig.json dùng
-    // cho build) để test không bị lỗi "Must use import to load ES Module".
-    '^.+\\.(t|j)s$': [
-      'ts-jest',
-      { isolatedModules: true, tsconfig: { module: 'commonjs', allowJs: true } },
-    ],
+    '^.+\\.(t|j)s$': 'ts-jest',
   },
-  // Mặc định Jest bỏ qua toàn bộ node_modules khi transform; ở đây cho phép
-  // transform riêng @nestjs/* để xử lý được tình huống ESM nói trên.
-  transformIgnorePatterns: ['/node_modules/(?!(@nestjs)/)'],
+  // Từ NestJS 12, các gói lõi (@nestjs/common, @nestjs/testing...) phát hành
+  // dưới dạng ES Module thuần — không transform chúng (giữ mặc định của
+  // Jest, chỉ transform code trong src/test), mà dựa vào require(esm) gốc
+  // của Node (>=24.9) để load trực tiếp. Node cần chạy kèm cờ
+  // --experimental-vm-modules thì Jest mới dùng được khả năng này (xem
+  // script "test" trong package.json).
   moduleNameMapper: pathsToModuleNameMapper(paths, { prefix: '<rootDir>/' }),
   collectCoverageFrom: [
     'src/**/*.(t|j)s',
