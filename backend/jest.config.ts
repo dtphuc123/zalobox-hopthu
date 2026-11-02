@@ -17,12 +17,9 @@ const config: Config = {
   transform: {
     '^.+\\.(t|j)s$': 'ts-jest',
   },
-  // Từ NestJS 12, các gói lõi (@nestjs/common, @nestjs/testing...) phát hành
-  // dưới dạng ES Module thuần — không transform chúng (giữ mặc định của
-  // Jest, chỉ transform code trong src/test), mà dựa vào require(esm) gốc
-  // của Node (>=24.9) để load trực tiếp. Node cần chạy kèm cờ
-  // --experimental-vm-modules thì Jest mới dùng được khả năng này (xem
-  // script "test" trong package.json).
+  // NestJS 12 phát hành @nestjs/common, @nestjs/testing... dạng ESM, Jest
+  // load được nhờ require(esm) của Node (cần chạy kèm cờ
+  // --experimental-vm-modules, xem script "test" ở package.json)
   moduleNameMapper: pathsToModuleNameMapper(paths, { prefix: '<rootDir>/' }),
   collectCoverageFrom: [
     'src/**/*.(t|j)s',

@@ -142,8 +142,6 @@ export function ChiTietHoiThoai() {
     }
   }
 
-  // Không chặn luồng chat nếu phần thông tin hội thoại lỗi, nhưng vẫn phải
-  // báo cho người dùng biết thay vì nuốt lỗi âm thầm.
   async function taiHoiThoai(hoiThoaiId: string) {
     try {
       const data = await layHoiThoai(hoiThoaiId);
@@ -223,9 +221,8 @@ export function ChiTietHoiThoai() {
     const themVao = dsIdMoi.filter((nid) => !dsIdCu.includes(nid));
     const boRa = dsIdCu.filter((nid) => !dsIdMoi.includes(nid));
     try {
-      // Gán nhãn mới và gỡ nhãn cũ song song (không phụ thuộc nhau), thay vì
-      // await tuần tự từng nhãn một — sau đó tải lại hội thoại 1 lần để lấy
-      // đúng trạng thái danh sách nhãn cuối cùng từ server.
+      // gán/gỡ nhãn song song rồi tải lại hội thoại để lấy đúng danh sách
+      // nhãn mới nhất từ server
       await Promise.all([
         ...themVao.map((nhanId) => ganNhan(id, nhanId)),
         ...boRa.map((nhanId) => goNhan(id, nhanId)),

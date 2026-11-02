@@ -5,10 +5,8 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Bật validate toàn cục cho mọi DTO (class-validator):
-  // - whitelist: loại bỏ field lạ không khai báo trong DTO
-  // - forbidNonWhitelisted: báo lỗi rõ ràng nếu client gửi field thừa
-  // - transform: tự chuyển kiểu (vd query string -> number/Date) theo DTO
+  // bật validate cho các DTO (class-validator), không thì mấy decorator
+  // @IsEmail, @IsUUID... khai báo ở DTO không có tác dụng gì cả
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
