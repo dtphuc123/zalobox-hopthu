@@ -49,6 +49,13 @@ export class HoiThoaiController {
     );
   }
 
+  // GET /hoi-thoai/:id — lấy đúng 1 hội thoại (dùng cho trang chi tiết,
+  // tránh phải tải cả danh sách chỉ để lọc ra 1 hội thoại)
+  @Get(':id')
+  async chiTiet(@Param('id') id: string, @Req() req: RequestCoNguoiDung) {
+    return this.hoiThoaiService.layMotHoiThoai(id, req.user);
+  }
+
   @Get(':id/tin-nhan')
   async lichSuTinNhan(@Param('id') id: string, @Req() req: RequestCoNguoiDung) {
     return this.hoiThoaiService.layLichSuTinNhan(id, req.user);

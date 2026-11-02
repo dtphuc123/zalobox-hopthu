@@ -6,6 +6,11 @@ export async function layDanhSachHoiThoai(): Promise<HoiThoai[]> {
   return data;
 }
 
+export async function layHoiThoai(hoiThoaiId: string): Promise<HoiThoai> {
+  const { data } = await apiClient.get<HoiThoai>(`/hoi-thoai/${hoiThoaiId}`);
+  return data;
+}
+
 export async function layLichSuTinNhan(hoiThoaiId: string): Promise<TinNhan[]> {
   const { data } = await apiClient.get<TinNhan[]>(
     `/hoi-thoai/${hoiThoaiId}/tin-nhan`,

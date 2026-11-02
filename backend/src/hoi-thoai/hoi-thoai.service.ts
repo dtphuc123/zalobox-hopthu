@@ -57,6 +57,23 @@ export class HoiThoaiService {
   }
 
   /**
+   * Lấy đúng 1 hội thoại theo id (kèm khách hàng + nhãn), có kiểm tra quyền
+   * giống layDanhSach: admin xem được mọi hội thoại trong tổ chức, nhân viên
+   * chỉ xem được hội thoại mình phụ trách.
+   */
+  async layMotHoiThoai(
+    hoiThoaiId: string,
+    user: NguoiDungHienTai,
+  ): Promise<HoiThoai> {
+    await this.timHoiThoaiCoQuyen(hoiThoaiId, user);
+
+    return this.hoiThoaiRepo.findOne({
+      where: { id: hoiThoaiId },
+      relations: { khachHang: true, danhSachNhan: true },
+    }) as Promise<HoiThoai>;
+  }
+
+  /**
    * Tìm kiếm hội thoại theo từ khóa (tên/SĐT/mã ngoài khách hàng + nội dung
    * tin nhắn), khách hàng, trạng thái, khoảng thời gian cập nhật, và nhãn.
    * Vẫn áp dụng đúng rule phân quyền như layDanhSach.

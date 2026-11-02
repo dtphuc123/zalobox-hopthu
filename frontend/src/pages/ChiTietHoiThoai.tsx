@@ -23,7 +23,7 @@ import { BoCucChinh } from '../components/BoCucChinh';
 import {
   layLichSuTinNhan,
   guiTinNhan,
-  layDanhSachHoiThoai,
+  layHoiThoai,
   doiTrangThai,
   ganNguoiPhuTrach,
   ganNhan,
@@ -142,13 +142,17 @@ export function ChiTietHoiThoai() {
     }
   }
 
+  // Không chặn luồng chat nếu phần thông tin hội thoại lỗi, nhưng vẫn phải
+  // báo cho người dùng biết thay vì nuốt lỗi âm thầm.
   async function taiHoiThoai(hoiThoaiId: string) {
     try {
-      const danhSach = await layDanhSachHoiThoai();
-      const tim = danhSach.find((h) => h.id === hoiThoaiId);
-      setHoiThoai(tim ?? null);
-    } catch {
-      // không chặn luồng chat nếu phần này lỗi
+      const data = await layHoiThoai(hoiThoaiId);
+      setHoiThoai(data);
+    } catch (err: any) {
+      message.error(
+        err?.response?.data?.message ||
+          'Không tải được thông tin hội thoại (trạng thái, người phụ trách, nhãn).',
+      );
     }
   }
 
@@ -156,8 +160,10 @@ export function ChiTietHoiThoai() {
     try {
       const data = await layDanhSachGhiChu(hoiThoaiId);
       setGhiChuList(data);
-    } catch {
-      // bỏ qua, không chặn chat
+    } catch (err: any) {
+      message.error(
+        err?.response?.data?.message || 'Không tải được ghi chú nội bộ.',
+      );
     }
   }
 
@@ -217,14 +223,14 @@ export function ChiTietHoiThoai() {
     const themVao = dsIdMoi.filter((nid) => !dsIdCu.includes(nid));
     const boRa = dsIdCu.filter((nid) => !dsIdMoi.includes(nid));
     try {
-      let hoiThoaiMoi = hoiThoai;
-      for (const nhanId of themVao) {
-        hoiThoaiMoi = await ganNhan(id, nhanId);
-      }
-      for (const nhanId of boRa) {
-        hoiThoaiMoi = await goNhan(id, nhanId);
-      }
-      setHoiThoai(hoiThoaiMoi);
+      // Gán nhãn mới và gỡ nhãn cũ song song (không phụ thuộc nhau), thay vì
+      // await tuần tự từng nhãn một — sau đó tải lại hội thoại 1 lần để lấy
+      // đúng trạng thái danh sách nhãn cuối cùng từ server.
+      await Promise.all([
+        ...themVao.map((nhanId) => ganNhan(id, nhanId)),
+        ...boRa.map((nhanId) => goNhan(id, nhanId)),
+      ]);
+      await taiHoiThoai(id);
     } catch (err: any) {
       message.error(err?.response?.data?.message || 'Cập nhật nhãn thất bại');
       taiHoiThoai(id);

@@ -1,6 +1,7 @@
 const { Zalo, ThreadType } = require('zca-js');
 import * as fs from 'fs';
 import * as path from 'path';
+import { Logger } from '@nestjs/common';
 import { IPlatformAdapter, IncomingMessageEvent } from './platform-adapter.interface';
 
 // Trong Docker, ./sessions = /app/sessions (được gắn volume nên không mất khi restart)
@@ -15,6 +16,7 @@ interface PhienZalo {
 }
 
 export class ZaloAdapter implements IPlatformAdapter {
+  private readonly logger = new Logger(ZaloAdapter.name);
   private api: any = null;
   private status: 'active' | 'disconnected' | 'error' = 'disconnected';
   /** Ảnh QR mới nhất (base64, không có tiền tố data:), null nếu không chờ quét */
@@ -31,10 +33,12 @@ export class ZaloAdapter implements IPlatformAdapter {
           this.api = await zalo.login(phien);
           this.status = 'active';
           this.qrBase64 = null;
-          console.log('Đăng nhập Zalo bằng phiên đã lưu thành công!');
+          this.logger.log('Đăng nhập Zalo bằng phiên đã lưu thành công!');
           return;
         } catch (loi) {
-          console.warn('Phiên Zalo đã lưu không dùng được nữa, chuyển sang quét QR.');
+          this.logger.warn(
+            'Phiên Zalo đã lưu không dùng được nữa, chuyển sang quét QR.',
+          );
           this.xoaPhien();
         }
       }
@@ -51,7 +55,7 @@ export class ZaloAdapter implements IPlatformAdapter {
           this.qrBase64 = base64;
           // Vẫn lưu ra file để tiện kiểm tra khi cần
           fs.writeFileSync(DUONG_DAN_QR, Buffer.from(base64, 'base64'));
-          console.log(`Đã có mã QR mới (lưu tại ${DUONG_DAN_QR})`);
+          this.logger.log(`Đã có mã QR mới (lưu tại ${DUONG_DAN_QR})`);
           onQrGenerated?.(DUONG_DAN_QR);
         } else if (event?.data?.cookie && event?.data?.imei) {
           // Quét xong: zca-js trả về thông tin đăng nhập -> lưu lại
@@ -77,11 +81,11 @@ export class ZaloAdapter implements IPlatformAdapter {
 
       this.status = 'active';
       this.qrBase64 = null;
-      console.log('Kết nối Zalo thành công!');
+      this.logger.log('Kết nối Zalo thành công!');
     } catch (err) {
       this.status = 'error';
       this.qrBase64 = null;
-      console.error('Lỗi kết nối Zalo:', err);
+      this.logger.error('Lỗi kết nối Zalo:', err instanceof Error ? err.stack : err);
       throw err;
     }
   }
@@ -145,9 +149,12 @@ export class ZaloAdapter implements IPlatformAdapter {
     try {
       fs.mkdirSync(path.dirname(DUONG_DAN_PHIEN), { recursive: true });
       fs.writeFileSync(DUONG_DAN_PHIEN, JSON.stringify(phien));
-      console.log(`Đã lưu phiên Zalo tại ${DUONG_DAN_PHIEN}`);
+      this.logger.log(`Đã lưu phiên Zalo tại ${DUONG_DAN_PHIEN}`);
     } catch (loi) {
-      console.error('Không lưu được phiên Zalo:', loi);
+      this.logger.error(
+        'Không lưu được phiên Zalo:',
+        loi instanceof Error ? loi.stack : loi,
+      );
     }
   }
 

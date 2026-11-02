@@ -55,8 +55,10 @@ export function DanhSachHoiThoai() {
     try {
       const data = await layDanhSachHoiThoai();
       setDanhSach(data);
-    } catch {
-      // bỏ qua lỗi polling ngầm, không làm phiền người dùng
+    } catch (err) {
+      // Không hiện Alert để tránh làm phiền người dùng khi polling ngầm,
+      // nhưng vẫn ghi log để không mất dấu lỗi backend lúc demo/kiểm tra.
+      console.debug('Làm mới danh sách hội thoại (ngầm) thất bại:', err);
     }
   }
 
