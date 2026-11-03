@@ -112,4 +112,44 @@ describe('HoiThoaiService', () => {
       expect(hoiThoaiRepo.findOne).not.toHaveBeenCalled();
     });
   });
+
+  describe('guiTinNhan — cập nhật hội thoại sau khi trả lời', () => {
+    function taoService(trangThai: string) {
+      const hoiThoai = { ...hoiThoaiCuaNhanVien, khachHangId: 'kh-1', trangThai };
+      const repoHoiThoai = {
+        findOne: jest.fn().mockResolvedValue(hoiThoai),
+        update: jest.fn().mockResolvedValue(undefined),
+      };
+      const repoTinNhan = { save: jest.fn().mockResolvedValue({ id: 'tn-1' }) };
+      const repoKhach = {
+        findOne: jest.fn().mockResolvedValue({ id: 'kh-1', maNgoai: 'zalo-1' }),
+      };
+      const zalo = { guiTinNhan: jest.fn().mockResolvedValue(undefined) };
+      const svc = new HoiThoaiService(
+        repoHoiThoai as any,
+        repoTinNhan as any,
+        repoKhach as any,
+        {} as any,
+        {} as any,
+        zalo as any,
+      );
+      return { svc, repoHoiThoai };
+    }
+
+    it('chuyển hội thoại "moi" sang "dang_xu_ly" khi nhân viên trả lời lần đầu', async () => {
+      const { svc, repoHoiThoai } = taoService('moi');
+      await svc.guiTinNhan('ht-1', 'Xin chào', nhanVien);
+      expect(repoHoiThoai.update).toHaveBeenCalledWith('ht-1', {
+        trangThai: 'dang_xu_ly',
+      });
+    });
+
+    it('vẫn update (để cập nhật ngayCapNhat) nhưng giữ nguyên trạng thái khi hội thoại không còn "moi"', async () => {
+      const { svc, repoHoiThoai } = taoService('dang_xu_ly');
+      await svc.guiTinNhan('ht-1', 'Xin chào', nhanVien);
+      expect(repoHoiThoai.update).toHaveBeenCalledWith('ht-1', {
+        trangThai: 'dang_xu_ly',
+      });
+    });
+  });
 });

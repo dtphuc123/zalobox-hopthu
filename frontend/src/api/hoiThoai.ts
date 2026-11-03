@@ -6,6 +6,23 @@ export async function layDanhSachHoiThoai(): Promise<HoiThoai[]> {
   return data;
 }
 
+export interface BoLocHoiThoai {
+  tuKhoa?: string;
+  trangThai?: string;
+  nhanId?: string;
+}
+
+export async function timKiemHoiThoai(bo: BoLocHoiThoai): Promise<HoiThoai[]> {
+  const { data } = await apiClient.get<HoiThoai[]>('/hoi-thoai/tim-kiem', {
+    params: {
+      tuKhoa: bo.tuKhoa || undefined,
+      trangThai: bo.trangThai || undefined,
+      nhanId: bo.nhanId || undefined,
+    },
+  });
+  return data;
+}
+
 export async function layHoiThoai(hoiThoaiId: string): Promise<HoiThoai> {
   const { data } = await apiClient.get<HoiThoai>(`/hoi-thoai/${hoiThoaiId}`);
   return data;

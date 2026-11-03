@@ -101,6 +101,11 @@ export class TinNhanSyncService {
       maTinNhanNenTang: event.platformMessageId,
     });
 
+    // Cập nhật ngayCapNhat để hội thoại có tin mới nổi lên đầu danh sách.
+    await this.hoiThoaiRepo.update(hoiThoai.id, {
+      trangThai: hoiThoai.trangThai,
+    });
+
     this.logger.log(
       `Đã lưu tin nhắn ${tinNhan.id} vào hội thoại ${hoiThoai.id}`,
     );

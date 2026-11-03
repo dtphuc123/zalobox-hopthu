@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { Table, Tag, Typography, Alert, Empty, Avatar, Space } from 'antd';
+import React, { useEffect, useRef, useState } from 'react';
+import { Table, Tag, Typography, Alert, Empty, Avatar, Space, Input, Select } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { BoCucChinh } from '../components/BoCucChinh';
-import { layDanhSachHoiThoai } from '../api/hoiThoai';
-import type { HoiThoai, TrangThaiHoiThoai } from '../api/types';
+import { timKiemHoiThoai } from '../api/hoiThoai';
+import { layDanhSachNhan } from '../api/nhan';
+import type { HoiThoai, Nhan, TrangThaiHoiThoai } from '../api/types';
 
 const { Title } = Typography;
 
@@ -22,10 +23,25 @@ export function DanhSachHoiThoai() {
   const [danhSach, setDanhSach] = useState<HoiThoai[]>([]);
   const [dangTai, setDangTai] = useState(true);
   const [loi, setLoi] = useState<string | null>(null);
+  const [tuKhoa, setTuKhoa] = useState('');
+  const [trangThai, setTrangThai] = useState<TrangThaiHoiThoai | undefined>();
+  const [nhanId, setNhanId] = useState<string | undefined>();
+  const [danhSachNhan, setDanhSachNhan] = useState<Nhan[]>([]);
+
+  // Polling dùng bộ lọc mới nhất thông qua ref (interval chỉ tạo một lần).
+  const boLocRef = useRef({ tuKhoa, trangThai, nhanId });
+  boLocRef.current = { tuKhoa, trangThai, nhanId };
 
   useEffect(() => {
-    taiDanhSach();
+    layDanhSachNhan()
+      .then(setDanhSachNhan)
+      .catch((err) => console.debug('Không tải được danh sách nhãn:', err));
   }, []);
+
+  // Tải lại mỗi khi đổi bộ lọc.
+  useEffect(() => {
+    taiDanhSach();
+  }, [tuKhoa, trangThai, nhanId]);
 
   // Polling: tự động cập nhật danh sách hội thoại mỗi vài giây (chưa có WebSocket).
   useEffect(() => {
@@ -39,7 +55,7 @@ export function DanhSachHoiThoai() {
     setDangTai(true);
     setLoi(null);
     try {
-      const data = await layDanhSachHoiThoai();
+      const data = await timKiemHoiThoai(boLocRef.current);
       setDanhSach(data);
     } catch (err: any) {
       setLoi(
@@ -53,7 +69,7 @@ export function DanhSachHoiThoai() {
 
   async function lamMoiNgam() {
     try {
-      const data = await layDanhSachHoiThoai();
+      const data = await timKiemHoiThoai(boLocRef.current);
       setDanhSach(data);
     } catch (err) {
       // polling ngầm nên không hiện Alert, chỉ log lại để còn biết lúc debug
@@ -107,6 +123,34 @@ export function DanhSachHoiThoai() {
       <Title level={4} style={{ marginBottom: 16 }}>
         Hội thoại
       </Title>
+
+      <Space wrap style={{ marginBottom: 16 }}>
+        <Input.Search
+          placeholder="Tìm theo tên, SĐT hoặc nội dung tin nhắn"
+          allowClear
+          onSearch={(v) => setTuKhoa(v.trim())}
+          style={{ width: 300 }}
+        />
+        <Select
+          placeholder="Trạng thái"
+          allowClear
+          value={trangThai}
+          onChange={(v) => setTrangThai(v)}
+          style={{ width: 160 }}
+          options={(Object.keys(NHAN_TRANG_THAI) as TrangThaiHoiThoai[]).map((k) => ({
+            value: k,
+            label: NHAN_TRANG_THAI[k].chu,
+          }))}
+        />
+        <Select
+          placeholder="Nhãn"
+          allowClear
+          value={nhanId}
+          onChange={(v) => setNhanId(v)}
+          style={{ width: 160 }}
+          options={danhSachNhan.map((n) => ({ value: n.id, label: n.ten }))}
+        />
+      </Space>
 
       {loi && (
         <Alert

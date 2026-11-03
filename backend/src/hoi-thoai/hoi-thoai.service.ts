@@ -113,7 +113,15 @@ export class HoiThoaiService {
     }
 
     if (bo.nhanId) {
-      qb.andWhere('nhan.id = :nhanId', { nhanId: bo.nhanId });
+      // Dùng EXISTS thay vì lọc trực tiếp trên join, để hội thoại tìm được
+      // vẫn trả về đủ tất cả nhãn của nó (không chỉ nhãn đang lọc).
+      qb.andWhere(
+        `EXISTS (
+          SELECT 1 FROM hoi_thoai_nhan htn
+          WHERE htn.hoiThoaiId = ht.id AND htn.nhanId = :nhanId
+        )`,
+        { nhanId: bo.nhanId },
+      );
     }
 
     if (bo.tuKhoa) {
@@ -171,11 +179,11 @@ export class HoiThoaiService {
       trangThai: 'da_gui',
     });
 
-    if (hoiThoai.trangThai === 'moi') {
-      await this.hoiThoaiRepo.update(hoiThoai.id, {
-        trangThai: 'dang_xu_ly',
-      });
-    }
+    // Luôn update (kể cả khi trạng thái không đổi) để @UpdateDateColumn
+    // cập nhật ngayCapNhat — hội thoại vừa được trả lời sẽ nổi lên đầu danh sách.
+    await this.hoiThoaiRepo.update(hoiThoai.id, {
+      trangThai: hoiThoai.trangThai === 'moi' ? 'dang_xu_ly' : hoiThoai.trangThai,
+    });
 
     return tinNhan;
   }

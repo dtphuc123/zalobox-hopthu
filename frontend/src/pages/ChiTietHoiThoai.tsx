@@ -33,6 +33,7 @@ import {
 } from '../api/hoiThoai';
 import { layDanhSachNhanVien } from '../api/nguoiDung';
 import { layDanhSachNhan, taoNhan } from '../api/nhan';
+import { layDanhSachMau } from '../api/mauTraLoiNhanh';
 import { useAuth } from '../context/AuthContext';
 import type {
   TinNhan,
@@ -40,6 +41,7 @@ import type {
   NhanVien,
   Nhan,
   GhiChuNoiBo,
+  MauTraLoiNhanh,
   TrangThaiHoiThoai,
 } from '../api/types';
 
@@ -68,6 +70,13 @@ export function ChiTietHoiThoai() {
   const [hoiThoai, setHoiThoai] = useState<HoiThoai | null>(null);
   const [nhanVienList, setNhanVienList] = useState<NhanVien[]>([]);
   const [nhanList, setNhanList] = useState<Nhan[]>([]);
+  const [mauList, setMauList] = useState<MauTraLoiNhanh[]>([]);
+
+  useEffect(() => {
+    layDanhSachMau()
+      .then(setMauList)
+      .catch((err) => console.debug('Không tải được mẫu trả lời nhanh:', err));
+  }, []);
   const [ghiChuList, setGhiChuList] = useState<GhiChuNoiBo[]>([]);
   const [ghiChuMoi, setGhiChuMoi] = useState('');
   const [dangGuiGhiChu, setDangGuiGhiChu] = useState(false);
@@ -373,6 +382,17 @@ export function ChiTietHoiThoai() {
                 alignItems: 'flex-end',
               }}
             >
+              <Select
+                placeholder="Mẫu nhanh"
+                style={{ width: 150 }}
+                value={null as any}
+                disabled={dangGui || mauList.length === 0}
+                options={mauList.map((m) => ({ value: m.id, label: m.tieuDe }))}
+                onChange={(idMau: string) => {
+                  const mau = mauList.find((m) => m.id === idMau);
+                  if (mau) setNoiDung(mau.noiDung);
+                }}
+              />
               <TextArea
                 value={noiDung}
                 onChange={(e) => setNoiDung(e.target.value)}
