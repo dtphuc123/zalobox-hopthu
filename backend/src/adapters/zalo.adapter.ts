@@ -134,6 +134,20 @@ export class ZaloAdapter implements IPlatformAdapter {
     return id ? String(id) : null;
   }
 
+  /** Ngắt kết nối hiện tại và xoá phiên đã lưu để lần connect() sau hiện mã QR mới */
+  ngatKetNoi(): void {
+    try {
+      this.api?.listener?.stop?.();
+    } catch (loi) {
+      this.logger.warn(`Không dừng được listener Zalo: ${loi}`);
+    }
+    this.api = null;
+    this.status = 'disconnected';
+    this.qrBase64 = null;
+    this.xoaPhien();
+    this.logger.log('Đã ngắt kết nối Zalo và xoá phiên đã lưu.');
+  }
+
   // ===== Lưu / đọc phiên đăng nhập =====
 
   private docPhien(): PhienZalo | null {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Result, Spin, Tag, Typography, Alert, Space } from 'antd';
+import { Card, Result, Spin, Tag, Typography, Alert, Space, Button, Popconfirm, message } from 'antd';
 import {
   CheckCircleFilled,
   LoadingOutlined,
@@ -7,7 +7,7 @@ import {
   WarningFilled,
 } from '@ant-design/icons';
 import { BoCucChinh } from '../components/BoCucChinh';
-import { layTrangThaiZalo, ThongTinZalo, TrangThaiZalo } from '../api/zalo';
+import { layTrangThaiZalo, doiTaiKhoanZalo, ThongTinZalo, TrangThaiZalo } from '../api/zalo';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -48,6 +48,15 @@ export function KetNoiZalo() {
     };
   }, []);
 
+  async function xuLyDoiTaiKhoan() {
+    try {
+      await doiTaiKhoanZalo();
+      message.success('Đã ngắt kết nối, vui lòng quét mã QR mới');
+    } catch (err: any) {
+      message.error(err?.response?.data?.message || 'Không đổi được tài khoản Zalo');
+    }
+  }
+
   function hienNoiDung() {
     if (!thongTin) {
       return (
@@ -67,6 +76,17 @@ export function KetNoiZalo() {
               thongTin.idTaiKhoanZalo
                 ? `ID tài khoản Zalo: ${thongTin.idTaiKhoanZalo}`
                 : undefined
+            }
+            extra={
+              <Popconfirm
+                title="Đổi sang tài khoản Zalo khác?"
+                description="Hệ thống sẽ ngắt kết nối hiện tại và hiện mã QR mới."
+                okText="Đổi tài khoản"
+                cancelText="Hủy"
+                onConfirm={xuLyDoiTaiKhoan}
+              >
+                <Button>Đổi tài khoản Zalo</Button>
+              </Popconfirm>
             }
           />
         );

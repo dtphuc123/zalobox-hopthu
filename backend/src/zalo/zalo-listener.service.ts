@@ -65,6 +65,17 @@ export class ZaloListenerService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
+  /**
+   * Đổi tài khoản Zalo: ngắt kết nối hiện tại, xoá phiên đã lưu và bắt đầu
+   * lại từ đầu để hiện mã QR mới (quét bằng tài khoản Zalo khác).
+   */
+  async doiTaiKhoan(): Promise<void> {
+    await this.ghiTrangThaiTaiKhoan('ngat_ket_noi');
+    this.adapter.ngatKetNoi();
+    this.taiKhoanNenTangId = null;
+    void this.ketNoiLai();
+  }
+
   private async ketNoi(): Promise<void> {
     try {
       await this.adapter.connect((qrPath) => {
