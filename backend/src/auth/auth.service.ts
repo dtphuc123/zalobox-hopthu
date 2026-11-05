@@ -23,6 +23,10 @@ export class AuthService {
       throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
     }
 
+    if (nguoiDung.trangThai === 'khoa') {
+      throw new UnauthorizedException('Tài khoản đã bị khoá');
+    }
+
     const khopMatKhau = await bcrypt.compare(dto.matKhau, nguoiDung.matKhauMaHoa);
     if (!khopMatKhau) {
       throw new UnauthorizedException('Email hoặc mật khẩu không đúng');

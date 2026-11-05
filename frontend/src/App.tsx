@@ -10,6 +10,7 @@ import { ChiTietHoiThoai } from './pages/ChiTietHoiThoai';
 import { MauTraLoiNhanhTrang } from './pages/MauTraLoiNhanh';
 import { BaoCaoHieuSuat } from './pages/BaoCaoHieuSuat';
 import { KetNoiZalo } from './pages/KetNoiZalo';
+import { QuanLyNguoiDung } from './pages/QuanLyNguoiDung';
 
 export function App() {
   useEffect(() => {
@@ -59,6 +60,14 @@ export function App() {
               element={
                 <RouteRiengTu>
                   <KetNoiZalo />
+                </RouteRiengTu>
+              }
+            />
+            <Route
+              path="/nguoi-dung"
+              element={
+                <RouteRiengTu>
+                  <QuanLyNguoiDung />
                 </RouteRiengTu>
               }
             />

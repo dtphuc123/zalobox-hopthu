@@ -16,6 +16,7 @@ export interface NhanVien {
   hoTen: string;
   email: string;
   vaiTro: VaiTro;
+  trangThai?: 'hoat_dong' | 'khoa';
 }
 
 export interface DangNhapResponse {

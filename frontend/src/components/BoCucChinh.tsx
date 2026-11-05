@@ -7,6 +7,7 @@ import {
   FileTextOutlined,
   BarChartOutlined,
   QrcodeOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -44,6 +45,11 @@ export function BoCucChinh({ children }: PropsWithChildren) {
             key: '/ket-noi-zalo',
             icon: <QrcodeOutlined />,
             label: 'Kết nối Zalo',
+          },
+          {
+            key: '/nguoi-dung',
+            icon: <TeamOutlined />,
+            label: 'Quản lý người dùng',
           },
         ]
       : []),

@@ -44,6 +44,16 @@ describe('AuthService', () => {
       ).rejects.toThrow(UnauthorizedException);
     });
 
+    it('ném UnauthorizedException khi tài khoản đã bị khoá', async () => {
+      nguoiDungRepo.findOne.mockResolvedValue({ ...nguoiDungMau, trangThai: 'khoa' });
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+      await expect(
+        service.dangNhap({ email: nguoiDungMau.email, matKhau: 'mat-khau-dung' }),
+      ).rejects.toThrow(UnauthorizedException);
+      expect(jwtService.sign).not.toHaveBeenCalled();
+    });
+
     it('trả về accessToken và thông tin người dùng (không kèm mật khẩu) khi đăng nhập đúng', async () => {
       nguoiDungRepo.findOne.mockResolvedValue(nguoiDungMau);
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
