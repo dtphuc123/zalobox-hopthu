@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { NguoiDungHienTai } from '../hoi-thoai/hoi-thoai.service';
 import { NguoiDungService } from './nguoi-dung.service';
@@ -31,5 +31,10 @@ export class NguoiDungController {
     @Body() dto: CapNhatNguoiDungDto,
   ) {
     return this.nguoiDungService.capNhatNguoiDung(req.user, id, dto);
+  }
+
+  @Delete(':id')
+  async xoa(@Req() req: RequestCoNguoiDung, @Param('id') id: string) {
+    return this.nguoiDungService.xoaNguoiDung(req.user, id);
   }
 }

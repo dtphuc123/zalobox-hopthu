@@ -7,19 +7,18 @@ import {
   Input,
   Select,
   Popconfirm,
-  Tag,
   message,
   Typography,
-  Space,
   Alert,
 } from 'antd';
-import { PlusOutlined, LockOutlined, UnlockOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { BoCucChinh } from '../components/BoCucChinh';
 import { useAuth } from '../context/AuthContext';
 import {
   layDanhSachNhanVien,
   taoNguoiDung,
   capNhatNguoiDung,
+  xoaNguoiDung,
 } from '../api/nguoiDung';
 import type { NhanVien } from '../api/types';
 
@@ -88,12 +87,13 @@ export function QuanLyNguoiDung() {
     }
   }
 
-  async function doiTrangThai(nd: NhanVien, trangThai: 'hoat_dong' | 'khoa') {
+  async function xoa(nd: NhanVien) {
     try {
-      capNhatTrongDanhSach(await capNhatNguoiDung(nd.id, { trangThai }));
-      message.success(trangThai === 'khoa' ? 'Đã khoá tài khoản' : 'Đã mở khoá tài khoản');
+      await xoaNguoiDung(nd.id);
+      setDanhSach((truoc) => truoc.filter((x) => x.id !== nd.id));
+      message.success('Đã xoá tài khoản');
     } catch (err: any) {
-      message.error(err?.response?.data?.message || 'Cập nhật thất bại');
+      message.error(err?.response?.data?.message || 'Xoá tài khoản thất bại');
     }
   }
 
@@ -120,37 +120,24 @@ export function QuanLyNguoiDung() {
       ),
     },
     {
-      title: 'Trạng thái',
-      dataIndex: 'trangThai',
-      key: 'trangThai',
-      width: 130,
-      render: (t?: string) =>
-        t === 'khoa' ? <Tag color="red">Đã khoá</Tag> : <Tag color="green">Hoạt động</Tag>,
-    },
-    {
       title: 'Hành động',
       key: 'hanhDong',
       width: 140,
       render: (_: unknown, record: NhanVien) => {
         if (record.id === nguoiDung?.id) return null;
-        const dangKhoa = record.trangThai === 'khoa';
         return (
-          <Space>
-            <Popconfirm
-              title={dangKhoa ? 'Mở khoá tài khoản này?' : 'Khoá tài khoản này?'}
-              okText={dangKhoa ? 'Mở khoá' : 'Khoá'}
-              cancelText="Hủy"
-              onConfirm={() => doiTrangThai(record, dangKhoa ? 'hoat_dong' : 'khoa')}
-            >
-              <Button
-                size="small"
-                danger={!dangKhoa}
-                icon={dangKhoa ? <UnlockOutlined /> : <LockOutlined />}
-              >
-                {dangKhoa ? 'Mở khoá' : 'Khoá'}
-              </Button>
-            </Popconfirm>
-          </Space>
+          <Popconfirm
+            title="Xoá tài khoản này?"
+            description="Hội thoại đang giao cho người này sẽ về trạng thái chưa phân công."
+            okText="Xoá"
+            okButtonProps={{ danger: true }}
+            cancelText="Hủy"
+            onConfirm={() => xoa(record)}
+          >
+            <Button size="small" danger icon={<DeleteOutlined />}>
+              Xoá
+            </Button>
+          </Popconfirm>
         );
       },
     },

@@ -31,3 +31,7 @@ export async function capNhatNguoiDung(
   const { data } = await apiClient.patch<NhanVien>(`/nguoi-dung/${id}`, input);
   return data;
 }
+
+export async function xoaNguoiDung(id: string): Promise<void> {
+  await apiClient.delete(`/nguoi-dung/${id}`);
+}

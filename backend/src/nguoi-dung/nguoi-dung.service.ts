@@ -8,7 +8,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { NguoiDung } from '../entities';
+import { GhiChuNoiBo, HoiThoai, NguoiDung } from '../entities';
 import { NguoiDungHienTai } from '../hoi-thoai/hoi-thoai.service';
 import { TaoNguoiDungDto } from './dto/tao-nguoi-dung.dto';
 import { CapNhatNguoiDungDto } from './dto/cap-nhat-nguoi-dung.dto';
@@ -103,6 +103,36 @@ export class NguoiDungService {
 
     const daLuu = await this.nguoiDungRepo.save(nguoiDung);
     return tomTat(daLuu);
+  }
+
+  async xoaNguoiDung(user: NguoiDungHienTai, id: string): Promise<{ daXoa: true }> {
+    this.kiemTraQuanTri(user);
+
+    if (id === user.id) {
+      throw new BadRequestException('Không thể tự xoá tài khoản của chính mình');
+    }
+
+    const nguoiDung = await this.nguoiDungRepo.findOne({
+      where: { id, toChucId: user.toChucId },
+    });
+    if (!nguoiDung) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+
+    // Gỡ các ràng buộc khoá ngoại trước khi xoá: hội thoại đang giao cho người này
+    // quay về chưa phân công, ghi chú nội bộ do người này viết bị xoá cùng tài khoản.
+    await this.nguoiDungRepo.manager.transaction(async (manager) => {
+      await manager.update(
+        HoiThoai,
+        { nguoiPhuTrachId: id, trangThai: 'dang_xu_ly' },
+        { nguoiPhuTrachId: null, trangThai: 'moi' },
+      );
+      await manager.update(HoiThoai, { nguoiPhuTrachId: id }, { nguoiPhuTrachId: null });
+      await manager.delete(GhiChuNoiBo, { nguoiDungId: id });
+      await manager.delete(NguoiDung, { id });
+    });
+
+    return { daXoa: true };
   }
 
   private kiemTraQuanTri(user: NguoiDungHienTai) {
