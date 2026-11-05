@@ -17,3 +17,7 @@ export async function layTrangThaiZalo(): Promise<ThongTinZalo> {
   const { data } = await apiClient.get<ThongTinZalo>('/zalo/trang-thai');
   return data;
 }
+
+export async function doiTaiKhoanZalo(): Promise<void> {
+  await apiClient.post('/zalo/doi-tai-khoan');
+}
